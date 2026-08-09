@@ -11,7 +11,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: forgejo-runner   # must match a label your runner has
+    runs-on: "Forgejo Runner"   # must match a label your runner has
 
     steps:
       - name: Checkout repository
