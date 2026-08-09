@@ -8,13 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        run: |
-          git clone --depth 1 ${{ forge.server_url }}/${{ forge.repository }} .
-          git checkout ${{ forge.sha }}
+        uses: https://data.forgejo.org/actions/checkout@v4
       
       - name: Login to Docker Hub
         run: |
