@@ -1,0 +1,374 @@
+{{/*
+  Site Settings.
+
+  Four separate forms rather than one. A single form would post the password
+  fields on every save, so changing a color would prompt the browser to update
+  a saved credential, and the account form could not require the current
+  password without demanding it for a change of slogan.
+*/}}
+{{define "content"}}
+{{template "admin-tabs" .}}
+
+<div class="admin-header">
+  <h1>Site Settings</h1>
+</div>
+
+{{with .Admin}}
+
+<form class="settings" action="/admin/settings" method="post">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+
+  <section class="settings-section">
+    <h2>Site</h2>
+    <div class="settings-fields">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" value="{{.Settings.Title}}" required>
+
+      <label for="slogan">Slogan</label>
+      <input type="text" id="slogan" name="slogan" value="{{.Settings.Slogan}}"
+             placeholder="The line beside the title, and the feed description">
+
+      <label for="base_url">URL</label>
+      <input type="text" id="base_url" name="base_url" value="{{.Settings.BaseURL}}"
+             placeholder="https://example.com — needed for absolute links in the feed">
+
+      {{/*
+        The button opens the upload dialog and names the field the resulting
+        path should be written into. It falls back to the Media tab when there
+        is no JavaScript, which is why it is an anchor rather than a button:
+        with the href present it still goes somewhere useful.
+      */}}
+      <label for="image">Image</label>
+      <div class="field-with-action">
+        <input type="text" id="image" name="image" value="{{.Settings.Image}}"
+               placeholder="/uploads/...">
+        <a class="button" href="/admin/media" data-upload-target="image">Upload</a>
+      </div>
+
+      <label for="favicon">Favicon</label>
+      <div class="field-with-action">
+        <input type="text" id="favicon" name="favicon" value="{{.Settings.Favicon}}"
+               placeholder="/uploads/...">
+        <a class="button" href="/admin/media" data-upload-target="favicon">Upload</a>
+      </div>
+
+      <label for="display_name">Display name</label>
+      <input type="text" id="display_name" name="display_name" value="{{.Settings.DisplayName}}"
+             placeholder="How you are credited on the site">
+    </div>
+    <p class="settings-note">
+      Images are uploaded on the Media tab, which gives you the path to paste
+      here. The display name is separate from your login username on purpose:
+      publishing the name you sign in with hands out half of a credential.
+    </p>
+  </section>
+
+  <section class="settings-section">
+    <h2>Look &amp; Feel</h2>
+
+    <div class="settings-colors">
+      {{template "color-field" dict "id" "color_background" "label" "Background" "value" .Settings.Theme.Background}}
+      {{template "color-field" dict "id" "color_surface" "label" "Surface" "value" .Settings.Theme.Surface}}
+      {{template "color-field" dict "id" "color_text" "label" "Text" "value" .Settings.Theme.Text}}
+      {{template "color-field" dict "id" "color_muted" "label" "Muted" "value" .Settings.Theme.Muted}}
+      {{template "color-field" dict "id" "color_accent" "label" "Accent" "value" .Settings.Theme.Accent}}
+      {{template "color-field" dict "id" "color_border" "label" "Border" "value" .Settings.Theme.Border}}
+    </div>
+
+    <div class="settings-fields settings-fonts">
+      <label for="site_title_font">Site title font</label>
+      <select id="site_title_font" name="site_title_font">
+        {{$current := .Settings.Theme.SiteTitleFont}}
+        {{range .SiteTitleFonts}}
+        <option value="{{.Value}}" {{if eq .Value $current}}selected{{end}}>{{.Label}} — {{.Note}}</option>
+        {{end}}
+      </select>
+
+      <label for="post_title_font">Post title font</label>
+      <select id="post_title_font" name="post_title_font">
+        {{$current := .Settings.Theme.PostTitleFont}}
+        {{range .PostTitleFonts}}
+        <option value="{{.Value}}" {{if eq .Value $current}}selected{{end}}>{{.Label}} — {{.Note}}</option>
+        {{end}}
+      </select>
+
+      <label for="content_font">Content font</label>
+      <select id="content_font" name="content_font">
+        {{$current := .Settings.Theme.ContentFont}}
+        {{range .ContentFonts}}
+        <option value="{{.Value}}" {{if eq .Value $current}}selected{{end}}>{{.Label}} — {{.Note}}</option>
+        {{end}}
+      </select>
+    </div>
+    <p class="settings-note">
+      Uploaded typefaces are listed first. The content list is shorter than the
+      title lists on purpose: a face that carries a five-word title beautifully
+      can be tiring across a full post.
+    </p>
+
+    <div class="settings-fields">
+      <label for="date_format">Date format</label>
+      <input type="text" id="date_format" name="date_format" value="{{.Settings.DateFormat}}"
+             spellcheck="false" autocomplete="off">
+    </div>
+
+    <details class="format-help">
+      <summary>How the date format works</summary>
+      <table class="api-table">
+        <tbody>
+          <tr><td>M</td><td>Month, spelled out</td><td>August</td></tr>
+          <tr><td>m</td><td>Month, abbreviated</td><td>Aug</td></tr>
+          <tr><td>D</td><td>Day, no leading zero</td><td>6</td></tr>
+          <tr><td>d</td><td>Day, leading zero</td><td>06</td></tr>
+          <tr><td>Y</td><td>Year, four digits</td><td>2026</td></tr>
+          <tr><td>y</td><td>Year, two digits</td><td>26</td></tr>
+        </tbody>
+      </table>
+      <p class="settings-note">
+        Anything from this set can sit between the letters:
+        space, hyphen, comma, pipe, underscore, colon, semicolon, period, and
+        both slashes. Anything else is ignored.
+      </p>
+      <ul class="format-examples">
+        {{range .DateExamples}}
+        <li><code>{{.Format}}</code> <span>{{.Result}}</span></li>
+        {{end}}
+      </ul>
+    </details>
+  </section>
+
+  <section class="settings-section">
+    <h2>Social Media</h2>
+    <p class="settings-note">
+      Give either a full web address or just your username. A username is
+      expanded into the right profile address for that service. Discord and
+      Mastodon have no address that can be built from a username alone, so those
+      show the handle without linking.
+    </p>
+
+    <div class="social-rows" id="social-rows">
+      {{$platforms := .AllPlatforms}}
+      {{$icons := .CustomIcons}}
+      {{range .SocialEntries}}
+      {{$selected := .Platform}}
+      {{$icon := .Icon}}
+      <div class="social-row">
+        <select name="social_platform" aria-label="Service">
+          <option value="">&mdash;</option>
+          {{range $platforms}}
+          <option value="{{.Value}}" {{if eq .Value $selected}}selected{{end}}>{{.Label}}</option>
+          {{end}}
+          <option value="custom" {{if eq "custom" $selected}}selected{{end}}>Custom&hellip;</option>
+        </select>
+
+        <input type="text" name="social_value" value="{{.URL}}"
+               placeholder="Username or full address" aria-label="Username or address">
+
+        {{/*
+          The label and icon only matter for a custom entry. They are always in
+          the markup rather than added by script, so a reader without
+          JavaScript can still fill them in.
+        */}}
+        <input type="text" name="social_label" value="{{.Label}}"
+               placeholder="Name (custom only)" aria-label="Name">
+
+        <select name="social_icon" aria-label="Custom icon" data-icon-select>
+          <option value="">Icon&hellip;</option>
+          {{range $icons}}
+          <option value="{{.}}" {{if eq . $icon}}selected{{end}}>{{.}}</option>
+          {{end}}
+        </select>
+      </div>
+      {{end}}
+    </div>
+
+    <div class="settings-row-actions">
+      {{/*
+        Adding a row is a convenience on top of the blank rows already
+        rendered, so the form is complete without it.
+      */}}
+      <button class="button" type="button" id="add-social">Add social button</button>
+    </div>
+    <p class="settings-note">Clear a row and save to remove it.</p>
+  </section>
+
+  <section class="settings-section">
+    <h2>Footer</h2>
+    <div class="settings-fields">
+      <label for="footer_text">Footer text</label>
+      <textarea id="footer_text" name="footer_text" rows="2"
+                data-default="{{.DefaultFooter}}">{{.Settings.FooterText}}</textarea>
+    </div>
+    <div class="settings-row-actions">
+      <button class="button" type="button" id="reset-footer">Reset to default</button>
+    </div>
+  </section>
+
+  <section class="settings-section">
+    <h2>Behaviour</h2>
+    <div class="settings-fields">
+      <label for="posts_per_page">Posts per page</label>
+      <input type="number" id="posts_per_page" name="posts_per_page"
+             value="{{.Settings.PostsPerPage}}" min="1" max="200">
+
+      <label for="max_upload_mb">Maximum upload size (MB)</label>
+      <input type="number" id="max_upload_mb" name="max_upload_mb"
+             value="{{.Settings.MaxUploadMB}}" min="1" max="{{.MaxUploadCeiling}}">
+
+      <label for="min_password_length">Minimum password length</label>
+      <input type="number" id="min_password_length" name="min_password_length"
+             value="{{.Settings.MinPasswordLength}}" min="{{.MinPasswordFloor}}" max="128">
+
+      <label for="timezone">Timezone</label>
+      <input type="text" id="timezone" name="timezone" value="{{.Settings.Timezone}}"
+             placeholder="America/Chicago">
+
+      <label for="language">Language</label>
+      <input type="text" id="language" name="language" value="{{.Settings.Language}}" placeholder="en">
+    </div>
+    <p class="settings-note">
+      The upload limit goes up to {{.MaxUploadCeiling}} MB, which is room for a
+      stacked astrophotography frame or a scan. A limit still exists because
+      without one a single request can fill the disk, and running out of space
+      fails far more messily than a refused upload. If you sit behind a reverse
+      proxy, check its own body size limit too: nginx defaults to 1 MB and will
+      refuse a large upload before Broadside ever sees it.
+    </p>
+    <p class="settings-note">
+      Password length is the property that actually resists an attack on a
+      stolen hash, which is why it is the only password rule here. It cannot go
+      below {{.MinPasswordFloor}}.
+    </p>
+  </section>
+
+  <div class="settings-actions">
+    <button class="button button-primary" type="submit">Save settings</button>
+  </div>
+</form>
+
+{{/*
+  Uploads are their own forms because a file input cannot be submitted by the
+  settings form without making the whole thing multipart, which would mean
+  every save carried an empty file part.
+*/}}
+<section class="settings-section">
+  <h2>Uploaded typefaces</h2>
+
+  <form class="upload-inline" action="/admin/settings/font" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input type="file" name="font" accept=".woff2,.woff,.ttf,.otf" required aria-label="Font file">
+    <button class="button" type="submit">Upload font</button>
+  </form>
+
+  {{if .UploadedFonts}}
+  {{$csrf := .CSRF}}
+  <ul class="admin-list">
+    {{range .UploadedFonts}}
+    <li class="admin-row">
+      <div class="admin-row-main">
+        <strong>{{.Label}}</strong>
+        <span class="admin-row-meta">{{.File}}</span>
+      </div>
+      <form action="/admin/settings/font/delete" method="post">
+        <input type="hidden" name="csrf" value="{{$csrf}}">
+        <input type="hidden" name="file" value="{{.File}}">
+        <button class="link-button" type="submit">Remove</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="settings-note">
+    None yet. WOFF2 is the format worth using; WOFF, TTF, and OTF are accepted
+    too.
+  </p>
+  {{end}}
+</section>
+
+<section class="settings-section">
+  <h2>Custom social icons</h2>
+
+  <form class="upload-inline" action="/admin/settings/icon" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input type="file" name="icon" accept=".png,.webp,.gif,.svg" required aria-label="Icon file">
+    <button class="button" type="submit">Upload icon</button>
+  </form>
+
+  {{if .CustomIcons}}
+  <ul class="icon-list">
+    {{range .CustomIcons}}
+    <li><img src="{{.}}" alt=""><code>{{.}}</code></li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="settings-note">
+    None yet. Upload one, then choose Custom on a social row and pick it.
+  </p>
+  {{end}}
+</section>
+
+{{/* ---- Account: its own form, so a password never rides along with a color change ---- */}}
+<section class="settings-section">
+  <h2>Account</h2>
+
+  <form class="settings-inline" action="/admin/settings/account" method="post">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <div class="settings-fields">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" value="{{.Username}}"
+             autocomplete="username" required spellcheck="false">
+
+      <label for="email">Email address</label>
+      <input type="email" id="email" name="email" value="{{.Email}}" autocomplete="email"
+             placeholder="For your own records. Not used to sign in.">
+    </div>
+    <div class="settings-row-actions">
+      <button class="button" type="submit">Save account</button>
+    </div>
+  </form>
+</section>
+
+<section class="settings-section">
+  <h2>Change password</h2>
+
+  <form class="settings-inline" action="/admin/settings/password" method="post">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <div class="settings-fields">
+      {{/*
+        The current password is required so that a borrowed session cannot
+        become a permanent takeover. Somebody at an unlocked machine can already
+        post; without this they could also lock the owner out.
+      */}}
+      <label for="current_password">Current password</label>
+      <input type="password" id="current_password" name="current_password"
+             autocomplete="current-password" required>
+
+      <label for="new_password">New password</label>
+      <input type="password" id="new_password" name="new_password"
+             autocomplete="new-password" required minlength="{{$.Admin.Settings.MinPasswordLength}}">
+
+      <label for="confirm_password">Confirm new password</label>
+      <input type="password" id="confirm_password" name="confirm_password"
+             autocomplete="new-password" required minlength="{{$.Admin.Settings.MinPasswordLength}}">
+    </div>
+    <div class="settings-row-actions">
+      <button class="button button-primary" type="submit">Change password</button>
+    </div>
+    <p class="settings-note">
+      Changing your password signs out every other session, which is the way to
+      recover if you think one has been taken. This one stays signed in.
+    </p>
+  </form>
+</section>
+{{end}}
+{{end}}
+
+{{define "color-field"}}
+<div class="color-field">
+  <label for="{{.id}}">{{.label}}</label>
+  <div class="color-inputs">
+    <input type="color" value="{{.value}}" aria-label="{{.label}} picker" data-syncs="{{.id}}">
+    <input type="text" id="{{.id}}" name="{{.id}}" value="{{.value}}" spellcheck="false">
+  </div>
+</div>
+{{end}}

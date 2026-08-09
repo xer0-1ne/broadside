@@ -1,0 +1,105 @@
+# ---- Broadside -------------------------------------------------------------
+
+# A site folder holds content, settings, and credentials. It must never be
+# committed, and it comes first here because everything else in this file is
+# untidiness while this one would be a leaked password hash.
+/site/
+/sites/
+site/
+
+# Compiled binaries. Release artifacts are built by CI or by Docker rather than
+# committed.
+/broadside
+/broadside-*
+/dist/
+/build/
+
+# The Tailwind standalone CLI is downloaded on demand, since it is a
+# platform-specific binary of about 100MB. The CSS it produces IS committed,
+# because installing Broadside must never require a build step.
+/web/tailwind/tailwindcss
+/web/tailwind/tailwindcss-*
+
+# Working notes and design documents.
+#
+# These are drafts rather than documentation. They go stale against the code
+# faster than anyone updates them, which makes them actively misleading to
+# somebody reading the repository to understand how it works.
+context.md
+.context.md
+NOTES.md
+TODO.md
+scratch/
+scratchpad/
+
+# ---- Coding assistants ------------------------------------------------------
+
+# Local tool configuration and session state, which belongs to whoever is
+# working on the project rather than to the project.
+.claude/
+.claude.json
+.claude.local.json
+CLAUDE.local.md
+.aider*
+.cursor/
+.cursorrules
+.windsurf/
+.continue/
+.codeium/
+
+# ---- Go ---------------------------------------------------------------------
+
+# Compiled object files, archives, and shared libraries.
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# Test binaries from "go test -c", and Windows executables.
+*.test
+*.exe
+*.exe~
+
+# Coverage and profiling output.
+*.out
+*.prof
+*.cov
+*.coverprofile
+coverage.*
+
+# Dependencies come from the module cache. Vendoring is a deliberate choice this
+# project has not made; delete this line if it ever does.
+/vendor/
+
+# Workspace files, which point at local paths on one machine.
+go.work
+go.work.sum
+
+# Live-reload and debugger artefacts.
+tmp/
+__debug_bin*
+
+# ---- Editors and operating systems -----------------------------------------
+
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# macOS drops these into every directory it touches.
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows.
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux.
+.directory
+.Trash-*

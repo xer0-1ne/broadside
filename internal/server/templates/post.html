@@ -1,0 +1,17 @@
+{{/*
+  A single post at its permalink.
+
+  The timeline already shows posts in full, so this page exists for sharing, for
+  feed readers following a link, and for search engines wanting one canonical
+  address per post. It renders the same article markup the timeline uses.
+*/}}
+{{define "content"}}
+{{if .Post}}
+<div class="post-list">
+  {{template "post-list" .}}
+</div>
+<nav class="pagination">
+  <a class="button" href="/">Back to all posts</a>
+</nav>
+{{end}}
+{{end}}

@@ -1,0 +1,52 @@
+{{/* Content tab: every post, grouped by status. */}}
+{{define "content"}}
+{{template "admin-tabs" .}}
+
+<div class="admin-header">
+  <h1>Content</h1>
+  <a class="button button-primary" href="/admin/new">Write a post</a>
+</div>
+
+{{with .Admin}}
+  {{if .Drafts}}
+  <section class="admin-section">
+    <h2>Drafts</h2>
+    {{template "admin-post-rows" .Drafts}}
+  </section>
+  {{end}}
+
+  {{if .Scheduled}}
+  <section class="admin-section">
+    <h2>Scheduled</h2>
+    {{template "admin-post-rows" .Scheduled}}
+  </section>
+  {{end}}
+
+  {{if .Published}}
+  <section class="admin-section">
+    <h2>Published</h2>
+    {{template "admin-post-rows" .Published}}
+  </section>
+  {{end}}
+
+  {{if not (or .Drafts .Scheduled .Published)}}
+  <div class="empty"><p>No posts yet.</p></div>
+  {{end}}
+{{end}}
+{{end}}
+
+{{define "admin-post-rows"}}
+<ul class="admin-list">
+  {{range .}}
+  <li class="admin-row">
+    <div class="admin-row-main">
+      <a href="/admin/edit/{{.Path}}">{{.Title}}</a>
+      <span class="admin-row-meta">{{.DisplayDate}}</span>
+    </div>
+    <div class="admin-row-actions">
+      <a href="{{.URL}}" title="View">View</a>
+    </div>
+  </li>
+  {{end}}
+</ul>
+{{end}}

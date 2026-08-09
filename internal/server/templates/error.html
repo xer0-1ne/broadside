@@ -1,0 +1,8 @@
+{{/* Error pages, carrying the site's own styling rather than bare browser text. */}}
+{{define "content"}}
+<div class="empty">
+  <h1>{{.Heading}}</h1>
+  {{if .Subheading}}<p>{{.Subheading}}</p>{{end}}
+  <p><a class="button" href="/">Back to all posts</a></p>
+</div>
+{{end}}

@@ -1,0 +1,267 @@
+{{/*
+  The shared page shell.
+
+  Everything sits on one centered column: the header, the search rule, the
+  posts, and the footer. That shared center line is what makes the page read as
+  a single composed thing rather than as stacked sections.
+*/}}
+{{define "layout"}}<!doctype html>
+<html lang="{{.Language}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>{{if .Heading}}{{.Heading}} &middot; {{end}}{{.Title}}</title>
+
+{{if .Slogan}}<meta name="description" content="{{.Slogan}}">{{end}}
+{{if .Favicon}}<link rel="icon" href="{{.Favicon}}">{{end}}
+{{if .CanonicalURL}}<link rel="canonical" href="{{.CanonicalURL}}">{{end}}
+
+{{/*
+  The theme is a separate stylesheet rather than an inline style block, which
+  is what lets the content security policy forbid inline styles outright. It
+  loads before the main stylesheet so the custom properties are defined by the
+  time anything references them.
+*/}}
+<link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/static/css/broadside.css?v={{.AssetVersion}}">
+
+{{/*
+  There is deliberately no <link rel="preload"> for the fonts. Measured, it did
+  not dedupe against the stylesheet's own request and every font was downloaded
+  twice per page load. The files are same-origin and the stylesheet that
+  references them is two lines above, so discovery is already immediate.
+*/}}
+
+<script src="/static/js/broadside.js?v={{.AssetVersion}}" defer></script>
+{{/*
+  Only loaded for a signed-in author, since neither does anything for a reader.
+  Deferred so they run after the document is parsed and in the order written,
+  which matters because the editor calls into the upload dialog.
+*/}}
+{{if .LoggedIn}}
+<script src="/static/js/upload.js?v={{.AssetVersion}}" defer></script>
+<script src="/static/js/editor.js?v={{.AssetVersion}}" defer></script>
+{{end}}
+</head>
+
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+{{/*
+  The author's own bar, on every page including the public ones.
+
+  It exists only while signed in, so a reader never sees an empty strip where a
+  menu would be. Home is here because once this bar appears on admin pages there
+  has to be a way back to the site that is not the browser's back button.
+
+  Logout is a form rather than a link. A link would be a GET, which any image tag
+  pointing at it could trigger, so a page elsewhere on the web could sign the
+  author out of their own site, and a link prefetcher could do it by accident.
+*/}}
+{{if .LoggedIn}}
+<nav class="site-nav" aria-label="Account">
+  <div class="wrap nav-row">
+    <a href="/">Home</a>
+    <span class="sep" aria-hidden="true">|</span>
+    <a href="/admin">Admin</a>
+    <span class="sep" aria-hidden="true">|</span>
+    <form class="logout-form" action="/logout" method="post">
+      <button class="link-button" type="submit">Logout</button>
+    </form>
+  </div>
+</nav>
+{{end}}
+
+{{/* ---- Header: picture, title, slogan, social ---- */}}
+<header class="site-header">
+  <div class="wrap">
+    {{/*
+      The picture and the text form one centered group. The image sits at the
+      right edge of its own column so it stays tight against the title, and the
+      text is left aligned against it, which reads as a single unit rather than
+      two things that happen to be adjacent.
+    */}}
+    <div class="identity">
+      {{if .Image}}
+      <img class="avatar" src="{{.Image}}" alt="" width="76" height="76">
+      {{end}}
+      <div class="identity-text">
+        <a class="site-title" href="/">{{.Title}}</a>
+        {{if .Slogan}}<p class="site-slogan">{{.Slogan}}</p>{{end}}
+      </div>
+    </div>
+
+    {{if .Social}}
+    <ul class="social">
+      {{range .Social}}
+      <li>
+        {{/*
+          A platform with no derivable profile address, such as Discord, has no
+          URL to link to. It renders as a plain icon carrying the handle as its
+          label rather than as a link to nowhere.
+        */}}
+        {{if .URL}}
+        <a href="{{.URL}}" rel="me noopener noreferrer" target="_blank" title="{{.Name}}">
+          <span class="visually-hidden">{{.Name}}</span>
+          {{/*
+            A custom entry is an uploaded image rather than a built-in mark. It
+            is rendered through an img element, which is what makes an SVG icon
+            safe: script inside an SVG does not run when it is loaded this way.
+          */}}
+          {{if .Custom}}<img class="social-icon" src="{{.Custom}}" alt="" width="18" height="18">{{else}}{{.Icon}}{{end}}
+        </a>
+        {{else}}
+        <span class="social-static" title="{{.Name}}">
+          <span class="visually-hidden">{{.Name}}</span>
+          {{if .Custom}}<img class="social-icon" src="{{.Custom}}" alt="" width="18" height="18">{{else}}{{.Icon}}{{end}}
+        </span>
+        {{end}}
+      </li>
+      {{end}}
+    </ul>
+    {{end}}
+  </div>
+</header>
+
+{{/*
+  ---- The search rule ----
+
+  A horizontal line with a magnifying glass sitting on it. Clicking the glass
+  slides the search panel open and turns it into a close button.
+
+  This is a <details> element rather than a div driven by script, and that
+  choice is doing real work. It opens and closes with no JavaScript at all, it
+  is keyboard operable for free, and browsers already announce its expanded
+  state to screen readers. Building the same thing from a button and a class
+  would mean reimplementing all three and getting at least one of them subtly
+  wrong.
+
+  It starts open when a search is active, so arriving on a shared results link
+  shows the query that produced them.
+*/}}
+{{if .ShowSearch}}
+<div class="search-rule wrap">
+  <details class="search" id="search" {{if .Query}}open{{end}}>
+    <summary class="search-toggle" title="Search" aria-label="Search">
+      <span class="search-icon">
+        {{/*
+          Both icons are in the markup and swapped by CSS on the open state,
+          rather than one being rewritten by script. That keeps the icon correct
+          before any script has run and with none at all.
+        */}}
+        <svg class="icon-search" viewBox="0 0 24 24" width="18" height="18" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>
+        </svg>
+        <svg class="icon-close" viewBox="0 0 24 24" width="18" height="18" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/>
+        </svg>
+      </span>
+    </summary>
+
+    <div class="search-panel">
+      {{/*
+        An ordinary GET form. Submitting it reloads the page with filtered
+        results, which is what a reader without JavaScript gets and what a
+        shared results URL does. The script replaces that reload with an
+        in-place swap.
+      */}}
+      <form action="/" method="get" role="search" id="search-form">
+        <label class="visually-hidden" for="q">Search posts</label>
+        <input type="search" id="q" name="q" value="{{.Query}}"
+               placeholder="Search" autocomplete="off" spellcheck="false">
+
+        {{/*
+          The mode is a hidden field rather than a pair of submit buttons so the
+          choice survives a no-script submission. The buttons below set it.
+        */}}
+        <input type="hidden" name="mode" id="search-mode" value="{{.SearchMode}}">
+
+        <div class="search-modes">
+          <button type="submit" class="mode" data-mode="tags"
+                  aria-pressed="{{if eq .SearchMode "tags"}}true{{else}}false{{end}}">Tags</button>
+          <button type="submit" class="mode" data-mode="content"
+                  aria-pressed="{{if eq .SearchMode "content"}}true{{else}}false{{end}}">Content</button>
+        </div>
+      </form>
+    </div>
+  </details>
+</div>
+{{end}}
+
+<main id="main" class="wrap">
+{{template "content" .}}
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>{{.Title}}</p>
+    <p>&copy; {{year}}{{if .Author}} {{.Author}}{{end}}</p>
+    {{/* The operator's own footer line, which defaults to crediting Broadside. */}}
+    {{if .FooterText}}<p>{{.FooterText}}</p>{{end}}
+  </div>
+</footer>
+
+{{/*
+  ---- The upload dialog ----
+
+  One dialog serves every upload on the site: the picture and favicon fields in
+  settings, and the image, video, and file blocks in the editor. Whatever opens
+  it says where the resulting path should go, so there is one piece of upload
+  handling rather than one per field.
+
+  It is a native <dialog>, which brings the modal behaviour, the backdrop, focus
+  trapping, and Escape to close without any of it being written here. Building
+  the same thing from a div would mean reimplementing all four and getting at
+  least one wrong.
+
+  It is only rendered for a signed-in author, since nobody else can upload.
+*/}}
+{{if .LoggedIn}}
+<dialog class="upload-dialog" id="upload-dialog" aria-labelledby="upload-dialog-title">
+  <form method="dialog" class="upload-dialog-close-form">
+    <button class="upload-dialog-close" value="cancel" aria-label="Close">&times;</button>
+  </form>
+
+  <h2 id="upload-dialog-title">Upload a file</h2>
+
+  <label class="upload-drop" id="upload-drop">
+    <span class="upload-drop-text">Drop a file here, or choose one</span>
+    <input type="file" id="upload-dialog-input"
+           accept="image/*,video/mp4,video/webm,audio/*,application/pdf">
+  </label>
+
+  {{/*
+    The progress line and the error share one region, and it is a live region so
+    a screen reader hears the result rather than only sighted users seeing it.
+  */}}
+  <p class="upload-status" id="upload-status" role="status" aria-live="polite"></p>
+
+  <div class="upload-existing">
+    <h3>Or pick something already uploaded</h3>
+    <ul class="upload-library" id="upload-library"></ul>
+  </div>
+</dialog>
+{{end}}
+
+{{/*
+  The lightbox overlay is part of the document rather than created by script,
+  so its markup is visible in view-source and its styling lives in the
+  stylesheet. It stays hidden until the script opens it, and a reader without
+  JavaScript never sees it because the images remain ordinary links.
+*/}}
+<div class="lightbox" id="lightbox" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Image viewer">
+  <button class="lightbox-close" type="button" aria-label="Close image">&times;</button>
+  <button class="lightbox-prev" type="button" aria-label="Previous image">&lsaquo;</button>
+  <button class="lightbox-next" type="button" aria-label="Next image">&rsaquo;</button>
+  <figure class="lightbox-figure">
+    <img class="lightbox-image" src="" alt="">
+    <figcaption class="lightbox-caption"></figcaption>
+  </figure>
+</div>
+
+</body>
+</html>
+{{end}}

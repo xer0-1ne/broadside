@@ -1,0 +1,19 @@
+{{/*
+  The tab strip shared by every admin page.
+
+  Each tab is an ordinary link to its own route, so all four are bookmarkable,
+  work with the back button, and need no JavaScript. A tabbed interface built
+  from divs and a click handler gets none of that for free.
+*/}}
+{{define "admin-tabs"}}
+<nav class="admin-tabs" aria-label="Admin sections">
+  {{range .Admin.Tabs}}
+  <a href="{{.URL}}" class="admin-tab{{if .Active}} is-active{{end}}"
+     {{if .Active}}aria-current="page"{{end}}>{{.Label}}</a>
+  {{end}}
+</nav>
+
+{{if .Admin.Notice}}
+<p class="admin-notice" role="status">{{.Admin.Notice}}</p>
+{{end}}
+{{end}}

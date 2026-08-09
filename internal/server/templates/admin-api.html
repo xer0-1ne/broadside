@@ -1,0 +1,169 @@
+{{/*
+  API tab: tokens and the documentation needed to wire the site to n8n,
+  Node-RED, or a shell script.
+
+  The documentation lives here rather than in a separate manual because the one
+  thing it needs, the site's own address, is only known at runtime, and because
+  somebody creating a token is exactly the person who needs the examples.
+*/}}
+{{define "content"}}
+{{template "admin-tabs" .}}
+
+<div class="admin-header">
+  <h1>API</h1>
+</div>
+
+{{with .Admin}}
+
+{{if .NewToken}}
+{{/*
+  Shown once and never again. Only the hash is stored, so this cannot be
+  recovered later, which is the point: a copy of the site folder does not hand
+  over working API access.
+*/}}
+<div class="token-reveal" role="alert">
+  <h2>Your new token</h2>
+  <p>Copy it now. It is not stored and will not be shown again.</p>
+  <input class="token-value" type="text" value="{{.NewToken}}" readonly
+         aria-label="New API token" onfocus="this.select()">
+</div>
+{{end}}
+
+<section class="admin-section">
+  <h2>Tokens</h2>
+  <p class="settings-note">
+    A token authenticates a script the same way your password authenticates the
+    browser. Give each integration its own, so one can be revoked without
+    disturbing the others.
+  </p>
+
+  <form class="token-form" action="/admin/api/tokens" method="post">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input type="text" name="name" placeholder="What is it for? e.g. n8n" aria-label="Token name" required>
+    <button class="button button-primary" type="submit">Create token</button>
+  </form>
+
+  {{if .Tokens}}
+  {{/*
+    The CSRF token is bound before the loop because inside a range the dot is
+    the current token, not the admin data, so .CSRF there would resolve against
+    the wrong type.
+  */}}
+  {{$csrf := .CSRF}}
+  <ul class="admin-list">
+    {{range .Tokens}}
+    <li class="admin-row">
+      <div class="admin-row-main">
+        <strong>{{.Name}}</strong>
+        <span class="admin-row-meta">
+          Created {{.Created.Format "2 Jan 2006"}}
+          {{if .LastUsed}}&middot; last used {{.LastUsed.Format "2 Jan 2006, 15:04"}}{{else}}&middot; never used{{end}}
+        </span>
+      </div>
+      <form action="/admin/api/tokens/revoke" method="post">
+        <input type="hidden" name="csrf" value="{{$csrf}}">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <button class="link-button" type="submit">Revoke</button>
+      </form>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <p class="settings-note">No tokens yet.</p>
+  {{end}}
+</section>
+
+<section class="admin-section">
+  <h2>Connecting n8n or Node-RED</h2>
+  <p class="settings-note">
+    Send the token in an <code>Authorization</code> header on every request.
+    In n8n use an HTTP Request node with Header Auth; in Node-RED set the header
+    on the <code>http request</code> node.
+  </p>
+
+  <pre class="api-block"><code>Authorization: Bearer YOUR_TOKEN</code></pre>
+
+  <h3>Watch for new posts</h3>
+  <p class="settings-note">
+    For syndicating to social media, poll the feed. It needs no token, returns
+    JSON, and lists the twenty most recent published posts. Drafts and scheduled
+    posts never appear in it.
+  </p>
+  <pre class="api-block"><code>GET {{.BaseURL}}/feed.json</code></pre>
+
+  <h3>Publish a post</h3>
+  <pre class="api-block"><code>curl -X POST {{.BaseURL}}/api/posts \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Posted from a script",
+    "body": "Written in **markdown**.",
+    "tags": ["automation"],
+    "draft": false
+  }'</code></pre>
+
+  <h3>Upload an image</h3>
+  <p class="settings-note">
+    The response carries the stored path. Put that into a post body as
+    <code>![description](path)</code> and it renders as a figure with a lightbox.
+  </p>
+  <pre class="api-block"><code>curl -X POST {{.BaseURL}}/api/media \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@photo.jpg"</code></pre>
+</section>
+
+<section class="admin-section">
+  <h2>Every endpoint</h2>
+  <table class="api-table">
+    <thead>
+      <tr><th>Method</th><th>Path</th><th>What it does</th><th>Token</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>GET</td><td>/feed.json</td><td>Recent published posts</td><td>No</td></tr>
+      <tr><td>GET</td><td>/health</td><td>Liveness and index counts</td><td>No</td></tr>
+      <tr><td>GET</td><td>/api/posts</td><td>List posts, cursor paginated</td><td>Yes</td></tr>
+      <tr><td>GET</td><td>/api/posts/{slug}</td><td>One post, body included</td><td>Yes</td></tr>
+      <tr><td>POST</td><td>/api/posts</td><td>Create a post</td><td>Yes</td></tr>
+      <tr><td>PATCH</td><td>/api/posts/{slug}</td><td>Update a post</td><td>Yes</td></tr>
+      <tr><td>DELETE</td><td>/api/posts/{slug}</td><td>Delete a post</td><td>Yes</td></tr>
+      <tr><td>GET</td><td>/api/media</td><td>List uploaded files</td><td>Yes</td></tr>
+      <tr><td>POST</td><td>/api/media</td><td>Upload a file</td><td>Yes</td></tr>
+      <tr><td>GET</td><td>/api/settings</td><td>Everything on this Site Settings tab</td><td>Yes</td></tr>
+      <tr><td>PATCH</td><td>/api/settings</td><td>Change some of it</td><td>Yes</td></tr>
+    </tbody>
+  </table>
+
+  <p class="settings-note">
+    A settings change is a partial update: send the fields you want to change
+    and the rest keep their values. Your username, your password, and these
+    tokens are not reachable over the API at all, only from a signed-in browser
+    session, because a token that could change the password it was issued under
+    could not meaningfully be revoked.
+  </p>
+
+  <p class="settings-note">
+    Listing is cursor paginated rather than by page number. Pass the
+    <code>next</code> value from a response back as <code>?before=</code> to get
+    the following page. A cursor cannot skip or repeat a post when something is
+    published midway through, which page numbers can.
+  </p>
+
+  <p class="settings-note">
+    <code>PATCH</code> is a genuine partial update: any field you leave out keeps
+    its current value, so flipping a draft to published is a one-field request.
+  </p>
+</section>
+
+<section class="admin-section">
+  <h2>This site right now</h2>
+  <table class="api-table">
+    <tbody>
+      <tr><td>Published</td><td>{{.Stats.Published}}</td></tr>
+      <tr><td>Drafts</td><td>{{.Stats.Drafts}}</td></tr>
+      <tr><td>Scheduled</td><td>{{.Stats.Scheduled}}</td></tr>
+      <tr><td>Tags</td><td>{{.Stats.Tags}}</td></tr>
+    </tbody>
+  </table>
+</section>
+{{end}}
+{{end}}

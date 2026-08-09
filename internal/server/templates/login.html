@@ -1,0 +1,53 @@
+{{/*
+  Sign in, or create the account on first run.
+
+  A page rather than a modal. Password managers and passkey prompts are far more
+  reliable against a real form on its own document, it works with JavaScript
+  disabled like the rest of the site, and it keeps a credential form off every
+  public page where injected content could reach it.
+*/}}
+{{define "content"}}
+<div class="auth">
+  <h1>{{.Heading}}</h1>
+
+  {{if .FirstRun}}
+  <p class="auth-intro">
+    Nobody has claimed this site yet. Pick a username and a password to become
+    its author. The password needs at least twelve characters.
+  </p>
+  {{end}}
+
+  {{if .Error}}
+  <p class="auth-error" role="alert">{{.Error}}</p>
+  {{end}}
+
+  <form class="auth-form" action="/login" method="post">
+    {{/*
+      Carried through so the reader lands where they were headed. It is
+      sanitized server-side to a site-relative path, so this cannot be turned
+      into an open redirect that bounces someone to a copy of this page.
+    */}}
+    <input type="hidden" name="next" value="{{.Next}}">
+
+    <label for="username">Username</label>
+    {{/*
+      The autocomplete values are what tell a password manager which field is
+      which. Getting them wrong is the usual reason saved credentials do not
+      fill in, and "new-password" is also what prompts an offer to generate one.
+    */}}
+    <input type="text" id="username" name="username" autocomplete="username"
+           required autofocus spellcheck="false">
+
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password"
+           autocomplete="{{if .FirstRun}}new-password{{else}}current-password{{end}}"
+           required {{if .FirstRun}}minlength="12"{{end}}>
+
+    <button class="button button-primary" type="submit">
+      {{if .FirstRun}}Create account{{else}}Sign in{{end}}
+    </button>
+  </form>
+
+  <p class="auth-back"><a href="/">Back to the site</a></p>
+</div>
+{{end}}

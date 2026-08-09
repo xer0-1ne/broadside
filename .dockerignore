@@ -1,0 +1,23 @@
+# The build only needs source. Everything here would either bloat the context
+# or, worse, be copied into an image where it does not belong.
+
+.git
+.github
+
+# A local site folder holds content and credentials. It must never end up baked
+# into an image, which is the reason this file matters more than build speed.
+/site
+
+# Build output, rebuilt inside the container anyway.
+/broadside
+/dist
+
+# The Tailwind CLI is a platform-specific binary of about 100MB, and the CSS it
+# produces is already committed.
+/web/tailwind/tailwindcss
+/web/tailwind/tailwindcss-*
+
+.DS_Store
+*.out
+*.test
+.claude

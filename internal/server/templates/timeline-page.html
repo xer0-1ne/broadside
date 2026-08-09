@@ -1,0 +1,15 @@
+{{/*
+  A bare run of posts with no page shell around it.
+
+  The infinite scroll script fetches this and appends it, and the search
+  enhancement fetches it to replace the list in place. A plain navigation never
+  receives this; see isFragmentRequest for why that distinction matters.
+*/}}
+{{define "timeline-page.html"}}
+{{template "post-list" .}}
+{{if .NextURL}}
+<nav class="pagination" id="pagination">
+  <a class="button" rel="next" href="{{.NextURL}}">Older posts</a>
+</nav>
+{{end}}
+{{end}}

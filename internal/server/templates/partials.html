@@ -1,0 +1,48 @@
+{{/*
+  Shared fragments.
+
+  These are separate so that a full page render and an in-page filter or an
+  infinite-scroll fetch all produce identical markup from one source. Without
+  that, appended posts would slowly drift out of step with the originals as the
+  templates change.
+*/}}
+
+{{/*
+  The post list.
+
+  Posts appear in full rather than as summaries, so the timeline is the site
+  rather than an index of it. A reader lands on the front page and starts
+  reading, with no click between them and the writing.
+*/}}
+{{define "post-list"}}
+{{range .Posts}}
+<article class="post" id="post-{{.Slug}}">
+  <header class="post-header">
+    <h2 class="post-title"><a href="{{.URL}}">{{.Title}}</a></h2>
+    <div class="post-meta">
+      {{/*
+        A machine-readable timestamp beside the human one, so feed tooling and
+        search engines read the exact instant while the reader sees a date they
+        can take in at a glance.
+      */}}
+      <time datetime="{{.MachineDate}}">{{.DisplayDate}}</time>
+      {{if .Draft}}<span class="badge">Draft</span>{{end}}
+    </div>
+  </header>
+
+  {{/*
+    The only place in the template set that emits unescaped markup. The value
+    is the renderer's output, which ran goldmark with raw HTML disabled and
+    then passed through bluemonday's allowlist. Nothing else should ever reach
+    safeHTML.
+  */}}
+  <div class="post-body">{{safeHTML .BodyHTML}}</div>
+
+  {{if .Tags}}
+  <footer class="post-tags">
+    {{range .Tags}}<a class="tag" href="/?q={{.}}&amp;mode=tags">#{{.}}</a>{{end}}
+  </footer>
+  {{end}}
+</article>
+{{end}}
+{{end}}

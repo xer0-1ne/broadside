@@ -1,0 +1,43 @@
+{{/* The front page, and the same template used for search results. */}}
+{{define "content"}}
+
+{{if .Query}}
+{{/*
+  A results banner, shown only when filtering. It names what was searched and
+  offers a way back, since the reader may have arrived here from a shared URL
+  with no memory of having typed anything.
+*/}}
+<div class="results-banner" id="results-banner">
+  <p>
+    {{.ResultCount}} {{.ResultNoun}} for <strong>{{.Query}}</strong>
+    <span class="results-mode">in {{.SearchMode}}</span>
+  </p>
+  <a class="clear-search" href="/">Clear</a>
+</div>
+{{end}}
+
+{{if hasPosts .Posts}}
+  {{/*
+    The id is where the infinite scroll script appends the next page, and where
+    the search enhancement swaps filtered results in.
+  */}}
+  <div class="post-list" id="post-list">
+    {{template "post-list" .}}
+  </div>
+
+  {{if .NextURL}}
+  <nav class="pagination" id="pagination">
+    <a class="button" rel="next" href="{{.NextURL}}">Older posts</a>
+  </nav>
+  {{end}}
+{{else if .Query}}
+  <div class="empty">
+    <p>Nothing matched.</p>
+  </div>
+{{else}}
+  <div class="empty">
+    <p>Nothing here yet.</p>
+    <p>Drop a markdown file into the <code>posts</code> folder and it will appear.</p>
+  </div>
+{{end}}
+{{end}}

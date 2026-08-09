@@ -1,0 +1,69 @@
+{{/*
+  First run.
+
+  Until this form is completed, every route on the site redirects here. That is
+  stricter than serving the blog and only guarding the admin, and deliberately
+  so: between first boot and somebody claiming the site, whoever finds it can
+  claim it. A container port-forwarded before its owner sits down to configure
+  it is an ordinary situation, and this closes the window rather than
+  documenting it.
+
+  The site's own details are collected here too, because a person setting up a
+  blog is already thinking about what to call it, and sending them to a settings
+  page afterwards just to name it is a needless second step.
+*/}}
+{{define "content"}}
+<div class="auth auth-wide">
+  <h1>{{.Heading}}</h1>
+  <p class="auth-intro">
+    This site has not been claimed yet. Create an account to become its author.
+    Nothing is published until you say so.
+  </p>
+
+  {{if .Error}}
+  <p class="auth-error" role="alert">{{.Error}}</p>
+  {{end}}
+
+  <form class="auth-form" action="/setup" method="post">
+    <h2 class="auth-section">Your account</h2>
+
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" autocomplete="username"
+           required autofocus spellcheck="false"
+           placeholder="How you sign in. Not shown on the site.">
+
+    <label for="email">Email address</label>
+    <input type="email" id="email" name="email" autocomplete="email"
+           placeholder="Optional. For your own records.">
+
+    {{/*
+      autocomplete="new-password" is what prompts a password manager to offer
+      to generate and save one. Getting this attribute wrong is the usual
+      reason that offer never appears.
+    */}}
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="new-password"
+           required minlength="{{.MinPasswordLength}}" placeholder="At least {{.MinPasswordLength}} characters">
+
+    <label for="confirm">Confirm password</label>
+    <input type="password" id="confirm" name="confirm" autocomplete="new-password"
+           required minlength="{{.MinPasswordLength}}">
+
+    <h2 class="auth-section">Your site</h2>
+
+    <label for="title">Site title</label>
+    <input type="text" id="title" name="title" required placeholder="My Blog">
+
+    <label for="slogan">Slogan</label>
+    <input type="text" id="slogan" name="slogan" placeholder="A line under the title">
+
+    <label for="display_name">Display name</label>
+    <input type="text" id="display_name" name="display_name"
+           placeholder="How you are credited. Defaults to your username.">
+
+    <button class="button button-primary" type="submit">Create the site</button>
+  </form>
+
+  <p class="auth-back">Everything here can be changed later in Site Settings.</p>
+</div>
+{{end}}

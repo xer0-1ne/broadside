@@ -1,0 +1,62 @@
+{{/* Media tab: upload and manage files. */}}
+{{define "content"}}
+{{template "admin-tabs" .}}
+
+<div class="admin-header">
+  <h1>Media</h1>
+</div>
+
+{{with .Admin}}
+<form class="upload-form" action="/admin/media/upload" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf" value="{{.CSRF}}">
+  <label class="upload-drop" for="file">
+    <span>Choose a file to upload</span>
+    {{/*
+      The accept attribute is a convenience for the file picker only. The server
+      re-checks by sniffing the actual bytes, because this attribute is trivially
+      bypassed and tells us nothing about what really arrived.
+    */}}
+    <input type="file" id="file" name="file" required
+           accept="image/*,video/mp4,video/webm,audio/*,application/pdf">
+  </label>
+  <button class="button button-primary" type="submit">Upload</button>
+</form>
+
+{{if .Uploads}}
+{{/* Bound before the loop for the same reason as on the API tab. */}}
+{{$csrf := .CSRF}}
+<ul class="media-grid">
+  {{range .Uploads}}
+  <li class="media-item">
+    {{if .IsImage}}
+    <a href="{{.URL}}" data-lightbox data-caption="{{.Name}}">
+      <img src="{{.URL}}" alt="{{.Name}}" loading="lazy" decoding="async">
+    </a>
+    {{else}}
+    <a class="media-file" href="{{.URL}}">{{.Name}}</a>
+    {{end}}
+
+    <div class="media-meta">
+      {{/*
+        The path is offered for copying because it is what goes into a post,
+        and retyping an upload path by hand is exactly where a typo becomes a
+        broken image.
+      */}}
+      <input class="media-path" type="text" value="{{.URL}}" readonly
+             aria-label="Path for {{.Name}}" onfocus="this.select()">
+      <span class="media-size">{{.DisplaySize}} &middot; {{.DisplayDate}}</span>
+    </div>
+
+    <form action="/admin/media/delete" method="post" class="media-delete">
+      <input type="hidden" name="csrf" value="{{$csrf}}">
+      <input type="hidden" name="path" value="{{.Path}}">
+      <button class="link-button" type="submit">Delete</button>
+    </form>
+  </li>
+  {{end}}
+</ul>
+{{else}}
+<div class="empty"><p>Nothing uploaded yet.</p></div>
+{{end}}
+{{end}}
+{{end}}
