@@ -3,49 +3,23 @@ name: Build and Push to Docker Hub
 on:
   push:
     branches:
-      - main          # change to your default branch if different
-      # - 'release/**'  # optional: also trigger on other branches
-    tags:
-      - 'v*'          # also build when you push a version tag
-  workflow_dispatch:  # allows manual runs from the Actions tab
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-and-push:
-    runs-on: self-hosted   # must match a label your runner has
+  build:
+    runs-on: self-hosted
 
     steps:
       - name: Checkout repository
-        uses: https://data.forgejo.org/actions/checkout@v4   # or @v6 if available
+        uses: https://data.forgejo.org/actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: https://data.forgejo.org/docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Log in to Docker Hub
-        uses: https://data.forgejo.org/docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build image
+        run: docker build --platform linux/amd64 -t ${{ secrets.DOCKERHUB_USERNAME }}/broadside:latest .
 
-      - name: Extract metadata (tags, labels)
-        id: meta
-        uses: https://data.forgejo.org/docker/metadata-action@v5
-        with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/broadside   # ← change this
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push
-        uses: https://data.forgejo.org/docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile          # change if your Dockerfile is elsewhere
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          # Optional: multi-platform (requires QEMU + more resources)
-          platforms: linux/amd64,linux/arm64
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+      - name: Push image
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/broadside:latest
