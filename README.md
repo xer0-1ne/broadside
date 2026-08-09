@@ -100,9 +100,49 @@ The image is `FROM scratch`: one statically linked binary and nothing else. No
 shell, no package manager, no libc. About fifteen megabytes, with nothing in it
 to patch.
 
+The build stage is pinned to the machine doing the building and cross-compiles
+with `GOARCH`, so building for another architecture costs seconds rather than
+emulating a Go compiler under QEMU for minutes. `linux/amd64` and `linux/arm64`
+together take about six seconds.
+
 Running it, putting it behind a reverse proxy, the user id it needs on Unraid,
 and the body size limits that matter for large uploads are all in the **docker**
 repository, because they are about operating Broadside rather than building it.
+
+## Releasing
+
+`.forgejo/workflows/publish.yml` builds the image for `linux/amd64` and
+`linux/arm64` and pushes it to Docker Hub. It runs the tests first, and nothing
+is published if they fail.
+
+Tag a release and it publishes three tags:
+
+```bash
+git tag v1.2.0
+git push origin v1.2.0
+```
+
+gives `:1.2.0`, `:1.2`, and `:latest`. A push to `main` publishes `:edge` and
+nothing else, so `latest` only ever moves when a release is tagged. That
+asymmetry is deliberate: the compose file people run defaults them to `latest`,
+and a commit that was not meant as a release should not arrive on their server.
+
+Before the first run, set these on the repository in Forgejo, under Settings
+then Actions:
+
+| | |
+|---|---|
+| `DOCKERHUB_USERNAME` | secret. Your Docker Hub account. |
+| `DOCKERHUB_TOKEN` | secret. An access token with Read & Write, not your password. |
+| `DOCKERHUB_IMAGE` | variable, optional. Defaults to `<username>/broadside`. |
+
+It also needs a runner registered against the repository, with a Docker daemon
+available to the publish job. The workflow's header comment says what to check
+if it does not start or fails at the build step.
+
+The workflow lives in `.forgejo/workflows/` rather than `.github/workflows/`
+because this repository is mirrored to GitHub, and a workflow in the GitHub path
+would run there too and publish the same tags twice.
 
 ## How your content is laid out
 

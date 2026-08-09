@@ -16,7 +16,13 @@
 
 # ---- Build ----------------------------------------------------------------
 
-FROM golang:1.25-alpine AS build
+# Pinned to the machine doing the building rather than the machine being built
+# for. Without --platform=$BUILDPLATFORM, a multi-architecture build runs this
+# whole stage under QEMU emulation once per architecture, which means emulating
+# a Go compiler: minutes of CPU to produce a binary Go can cross-compile in
+# seconds. With it, the compiler always runs natively and only the output
+# changes shape.
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS build
 
 WORKDIR /src
 
@@ -27,10 +33,18 @@ RUN go mod download
 
 COPY . .
 
+# Supplied by buildx, one value per architecture being built. Declared with
+# defaults so a plain "docker build" with no buildx still works and produces an
+# image for the machine it ran on.
+ARG TARGETOS=linux
+ARG TARGETARCH
+
 # CGO off means a statically linked binary with nothing to link against at
-# runtime, which is what allows the scratch image below.
+# runtime, which is what allows the scratch image below. It is also what makes
+# the cross-compilation above free: with cgo enabled this would need a C
+# toolchain for every target.
 ARG VERSION=docker
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -ldflags="-s -w -X main.version=${VERSION}" \
       -trimpath \
       -o /broadside ./cmd/broadside

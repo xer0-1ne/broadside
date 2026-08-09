@@ -1,0 +1,52 @@
+
+name: Build and Push to Docker Hub
+
+on:
+  push:
+    branches:
+      - main          # change to your default branch if different
+      # - 'release/**'  # optional: also trigger on other branches
+    tags:
+      - 'v*'          # also build when you push a version tag
+  workflow_dispatch:  # allows manual runs from the Actions tab
+
+jobs:
+  build-and-push:
+    runs-on: docker   # must match a label your runner has
+
+    steps:
+      - name: Checkout repository
+        uses: https://data.forgejo.org/actions/checkout@v4   # or @v6 if available
+
+      - name: Set up Docker Buildx
+        uses: https://data.forgejo.org/docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: https://data.forgejo.org/docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: https://data.forgejo.org/docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/broadside   # ← change this
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: https://data.forgejo.org/docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile          # change if your Dockerfile is elsewhere
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Optional: multi-platform (requires QEMU + more resources)
+          platforms: linux/amd64,linux/arm64
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
