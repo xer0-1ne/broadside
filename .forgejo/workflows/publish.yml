@@ -13,6 +13,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: https://data.forgejo.org/actions/checkout@v4
+
+      - name: Set up Docker
+       run: |
+         # Install Docker CLI
+         apt-get update
+         apt-get install -y docker.io
+         ls -l /var/run/docker.sock || true
       
       - name: Login to Docker Hub
         run: |
