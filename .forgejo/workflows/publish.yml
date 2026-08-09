@@ -12,8 +12,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: https://data.forgejo.org/actions/checkout@v4
-
+        run: |
+          git clone --depth 1 ${{ forge.server_url }}/${{ forge.repository }} .
+          git checkout ${{ forge.sha }}
+      
       - name: Login to Docker Hub
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
