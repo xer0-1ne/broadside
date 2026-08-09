@@ -1,4 +1,3 @@
-
 name: Build and Push to Docker Hub
 
 on:
@@ -12,7 +11,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: docker   # must match a label your runner has
+    runs-on: forgejo-runner   # must match a label your runner has
 
     steps:
       - name: Checkout repository
